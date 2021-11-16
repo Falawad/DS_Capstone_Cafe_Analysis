@@ -1,0 +1,306 @@
+---
+title: "Capstone_presentation"
+author: "Fatimah Alawad"
+date: "11/13/2021"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+
+Increasing the sales and profit margins is one of the most crucial priority of business owners. Thus, an owner of a local cafe asked me do some analysis on three different data to increase the profits and to predict future profits. 
+
+---
+
+## Research questions 
+
+How could a cafe increases his profits?
+
+To answer this question or to discover new information, or confirm an idea they already know, I plan to:
+
+- Discover what are the days that have many customers using time series on  visitors data.
+- Discover what are the best seller item using the products data.
+- Predicting the profits for the next year using a Time Series.
+
+---
+
+## The source and structure of the data
+
+The visit data is from a device the owner of the Cafe put above the main door to count the visitors and have some extra variables.It has 7 variables and 8089 observations.
+
+| Variable             | Description                              |
+|----------------------|------------------------------------------|
+|day                   | The date                                 |
+|Time                  | The hour of the date                     |
+|ValueIn               | The number of visitors                   |
+|ValueOut              | The number of visitors leaving the cafe  |
+|Turn In Rate(%)       | The rate of visitors turn in             |
+|OutsideTraffic        | The numbers of people outside the cafe   |
+
+
+---
+
+
+The items data from the sales website and it has 5 variables and 96 observations. 
+
+| Variable             | Description                              |
+|----------------------|------------------------------------------|
+|item                  | The name of the item                     |
+|count                 | How many pieces have been sold           |
+|price                 | The overall price                        |
+|cost                  | The cost of the items                    |
+|profits               | The amount of money earned               |
+
+---
+
+
+The sales data is from the sales website that he is using directly and has the 6 variables and 338 observations.
+
+| Variable             | Description                              |
+|----------------------|------------------------------------------|
+|Total sales           | The total number of sales                |
+|Items cost            | The cost of the sold items               |
+|Taxes                 | Additional fee                           |
+|Offers                | Discount or some offers                  |
+|Profits               | The amount of money earned               |
+
+
+
+---
+
+
+## Assumptions
+
+1. In visit data, the variables are positively skewed due to the large number of zeros and ones since it is hourly data.
+
+2. It is not enough data since the cafe is open for less that a year.
+
+---
+
+# Discovering what are the days that have many customers using the visitors data
+
+-  After uploading the data and exploring the distributions of the variables, I decided to remove the variable Value out since it doesn't add any value to the number of visitors. 
+-  The variables seem to be positively skewed as we can see here:
+
+```{r,include = FALSE}
+## load packages
+library(tidyverse)
+library(kknn)
+library(ggrepel)
+library(corrplot)
+library(dplyr)       # for data manipulation
+library(EnvStats)
+library(RColorBrewer)
+library(vip)         # for variable importance
+#Time Series
+library(tseries)
+library(forecast)
+library(xts)
+library(fpp3)
+library(tsibble)
+# Ploting
+library(reshape2)
+library(plotly)
+library(ggplot2)
+library(ggpubr)  #To arrange plots on one page
+
+# Modeling process
+library(tidymodels)
+
+#Downloading the data
+
+visit.dat <- read.csv("~/Documents/GitHub/DS_Capstone_Cafa_Analysis/Hourlydata.csv")
+
+```
+
+
+```{r}
+VI.plot <- ggplot(data=visit.dat, aes(x=ValueIn)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("The number of visitors") +
+        NULL
+
+OT.plot <- ggplot(data=visit.dat, aes(x=OutsideTraffic)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab(" The number of people outside the cafe ") +
+        NULL
+
+TI.plot <- ggplot(data=visit.dat, aes(x=TurnInRate)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("The rate of visitors turn in") +
+        NULL
+
+ggarrange(VI.plot, OT.plot, TI.plot + rremove("x.text"),
+          ncol = 2, nrow = 2)
+
+```
+
+-A large number of zeros is because of the hourly data.
+
+---
+
+## Important features using Decision Trees
+
+```{r, echo=FALSE}
+   knitr::include_graphics('./000009.png')
+```
+
+- The time, and Date are the most important variables.
+
+---
+
+## The effect of the hour on the number of visitors
+
+```{r echo=FALSE, cache=FALSE, results=TRUE, warning=FALSE, comment=FALSE, warning=FALSE}
+
+Time_vig <- plot_ly(visit.dat, y =  visit.dat$ValueIn, type = 'bar', color = ~Time) %>%
+  layout( barmode = 'stack')
+Time_vig
+```
+
+- We can see that there are many customers at night from 7pm until 12pm, but the highest number of visitors were at 22pm and 23pm.
+
+---
+
+## The effect of the day on the number of visitors
+```{r, echo=FALSE, cache=FALSE}
+
+ggplot(visit.dat, aes(fill = factor(Day), max(ValueIn))) +
+  geom_bar(position = "dodge") +
+  NULL
+```
+
+- weekends have the highest number of visitors.
+
+---
+
+
+## Discovering what are the best seller item using the products data.
+
+```{r echo=FALSE, cache=FALSE, results=TRUE, warning=FALSE, comment=FALSE, warning=FALSE}
+#Downloading the data
+Items <- read.csv("~/Documents/GitHub/DS_Capstone_Cafa_Analysis/Items.csv")
+
+```
+
+```{r, echo=FALSE, cache=FALSE}
+Items$item[Items$profits== max(Items$profits) & Items$count== max(Items$count)]
+
+```
+Flat White is the most seller and most profitable item!
+
+## Items with more than 1,500 Pieces sold in 11 months
+```{r, echo=FALSE, cache=FALSE}
+Items$item[Items$count > 1500]
+```
+The best selling items are drinks. Looks like we drink hot drinks even in the very hot weather since most of them are hot drinks. (At least water is on the list)
+
+# Which Items are not profitable?
+```{r, echo=FALSE, cache=FALSE}
+#Choosing the items where the profits and counts are less than the average. 
+Items$item[Items$profits == min(Items$profits)]
+```
+
+- These are sweets, maybe it is not a good idea to have many desserts in a coffee shop.
+
+---
+
+
+## Sales Data
+
+```{r echo=FALSE, cache=FALSE, results=TRUE, warning=FALSE, comment=FALSE, warning=FALSE}
+#Downloading the data
+sales.data <- read.csv("~/Documents/GitHub/DS_Capstone_Cafa_Analysis/sales-data.csv")
+
+```
+
+
+- EDA
+
+```{r}
+# Ploting the response
+Prof.plot <- ggplot(data=sales.data, aes(x=Profits)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("The amount of money earned") +
+        NULL
+
+## The rest of the variables
+cost.plot <- ggplot(data=sales.data, aes(x=Items.cost)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("The cost of the sold items") +
+        NULL
+
+
+tax.plot <- ggplot(data=sales.data, aes(x=Taxes)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("Additional fee") +
+        NULL
+
+
+offer.plot <- ggplot(data=sales.data, aes(x=Offers)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("Discount or some offers") +
+        NULL
+
+
+tot.sale.plot <- ggplot(data=sales.data, aes(x= Total.sales)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("The total number of sales") +
+        NULL
+
+ggarrange(Prof.plot, cost.plot, tax.plot, offer.plot, tot.sale.plot + rremove("x.text"),
+          ncol = 3, nrow = 2)
+
+```
+
+- All the variables are positively skewed. A large number of zeros duo to the closing hours. 
+
+---
+
+# Time Series Analysis
+
+## ARIMA
+
+- It is a time series forecasting method. The phrase ARIMA stands for AutoRegressive Integrated Moving Average. The lags of the differenced series are referred to as Auto Regressive (AR). 
+
+## Stationary
+
+- A stationary time series is one whose statistical properties are independent of the time at which the series is recorded.
+
+## Seasonality 
+
+- It is a repeating pattern within a year. We can not see that in our data because we don't have a record for a whole year.
+
+
+##
+--- 
+
+
+
+
+
+---
+# Challenges
+
+- Doing a time series model for a short time is not easy and with some challenges such as covid-19 lockdown.
+- In the time series, there is not enough data for a whole year, which prevent me from looking to the seasonality. I tried different ways to check it but nothing works.
+
+
+# Conclusion
+
+To increase the number of visitors and thus profits, I suggest focusing on weekends as they tend to increase the number of people. Also, removing unprofitable products from then and increasing the number of profitable products may help.
+
+
+# Outlook for future development
+Deploying the model is one of what I plan to do in the future to feed it with the new data after completing one year from the opening date.
+
+
+
+# Limitations & problems
+
+The problem that I faced is that as I said, there is no seasonality in the data. I think that due to covid-19 lockdown and the limited number of customers that are allowed to enter the cafe. The Limitation was in the data since it is for a period that is less than a year.
+
+# Any question?
