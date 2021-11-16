@@ -46,5 +46,5 @@ The sales data is from the sales website that he is using directly and has the 5
 
 
 
-
-
+To access the html file:
+https://falawad.github.io/DS_Capstone_Cafe_Analysis/Cafe-projec.html
