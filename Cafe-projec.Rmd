@@ -1,0 +1,745 @@
+---
+title: "DS_Capstone_Cafe_Analysis"
+author: "Fatimah Alawad"
+date: "10/26/2021"
+output: 'rmdformats::material'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Introduction
+
+Increasing the sales and profit margins is one of the most crucial priority of business owners. Thus, an owner of a local cafe asked me do some analysis on three different data to increase the profits and to predict future profits. 
+
+
+# Research questions 
+
+How could a cafe increases it's profits?
+
+To answer this question or to discover new information, or confirm an idea they already know, I plan to:
+
+- Discover what are the days that have many customers using time series on  visitors data.
+- Discover what are the best seller item using the products data.
+- Predicting the profits for the next year using a Time Series.
+
+
+# The source and structure of the data
+
+The visit data is from a device the owner of the Cafe put above the main door to count the visitors and have some extra variables.It has 7 variables and 8089 observations.
+
+| Variable             | Description                              |
+|----------------------|------------------------------------------|
+|day                   | The date                                 |
+|Time                  | The hour of the date                     |
+|ValueIn               | The number of visitors                   |
+|ValueOut              | The number of visitors leaving the cafe  |
+|Turn In Rate(%)       | The rate of visitors turn in             |
+|OutsideTraffic        | The numbers of people outside the cafe   |
+
+
+
+
+
+The items data from the sales website and it has 5 variables and 96 observations. 
+
+| Variable             | Description                              |
+|----------------------|------------------------------------------|
+|item                  | The name of the item                     |
+|count                 | How many pieces have been sold           |
+|price                 | The overall price                        |
+|cost                  | The cost of the items                    |
+|profits               | The amount of money earned               |
+
+
+
+
+The sales data is from the sales website that he is using directly and has the 6 variables and 338 observations.
+
+| Variable             | Description                              |
+|----------------------|------------------------------------------|
+|Total sales           | The total number of sales                |
+|Items cost            | The cost of the sold items               |
+|Taxes                 | Additional fee                           |
+|Offers                | Discount or some offers                  |
+|Profits               | The amount of money earned               |
+
+
+## Assumptions
+
+1. In visit data, the variables are positively skewed due to the large number of zeros and ones since it is hourly data.
+
+2. It is not enough data since the cafe is open for less that a year
+
+# Discovering what are the days that have many customers using the visitors data
+
+```{r}
+## load packages
+library(tidyverse)
+library(kknn)
+library(ggrepel)
+library(corrplot)
+library(dplyr)       # for data manipulation
+library(EnvStats)
+library(RColorBrewer)
+library(vip)         # for variable importance
+#Time Series
+library(tseries)
+library(forecast)
+library(xts)
+library(fpp3)
+library(tsibble)
+library(prophet)
+# Ploting
+library(reshape2)
+library(plotly)
+library(ggplot2)
+library(ggpubr)  #To arrange plots on one page
+
+# Modeling process
+library(tidymodels)
+
+```
+
+# Sales Data
+## Loading and Exploring Data
+```{r}
+#Downloading the data
+sales.data <- read.csv("~/Documents/GitHub/DS_Capstone_Cafe_Analysis/sales-data.csv")
+```
+
+
+## Exploring some of the most important variables
+
+```{r}
+# Ploting the response
+Prof.plot <- ggplot(data=sales.data, aes(x=Profits)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("The amount of money earned") +
+        NULL
+
+## The rest of the variables
+cost.plot <- ggplot(data=sales.data, aes(x=Items.cost)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("The cost of the sold items") +
+        NULL
+
+
+tax.plot <- ggplot(data=sales.data, aes(x=Taxes)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("Additional fee") +
+        NULL
+
+
+offer.plot <- ggplot(data=sales.data, aes(x=Offers)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("Discount or some offers") +
+        NULL
+
+
+tot.sale.plot <- ggplot(data=sales.data, aes(x= Total.sales)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("The total number of sales") +
+        NULL
+
+ggarrange(Prof.plot, cost.plot, tax.plot, offer.plot, tot.sale.plot + rremove("x.text"),
+          ncol = 3, nrow = 2)
+
+```
+
+- All the variables are positively skewed. A large number of zeros duo to the closing hours. 
+
+# Time Series Analysis
+
+## ARIMA
+
+- It is a time series forecasting method. The phrase ARIMA stands for AutoRegressive Integrated Moving Average. The lags of the differenced series are referred to as Auto Regressive (AR). 
+
+## Stationary
+
+- A stationary time series is one whose statistical properties are independent of the time at which the series is recorded.
+
+## Seasonality 
+
+- It is a repeating pattern within a year. We can not see that in our data because we don't have a record for a whole year.
+
+## Auto Regressive(AR)
+
+- It is similar to the basic linear regression, except each observation is regressed on the prior observation.
+
+## Moving Averages(MA)
+
+- It is a simple time series model designed to account for autocorrelation. It has a regression-like structure, but each observation is regressed on the prior innovation, which is not observed.
+
+
+```{r}
+###########################################
+# This file loads monthly sales per day
+# We will use data to forecast 
+###########################################
+
+# Taking out the observations from 2020-11-26 until 2020-11-30 since there wont be monthly affect for this month
+sales.data <- slice(sales.data,-c(303:333))
+
+# Choosing only the data and Profits
+ts.sales <- select(sales.data,c(1,6))
+
+# Add some features to our dataset
+ts.sales$Date = ymd(ts.sales$Date)
+ts.sales$year = year(ts.sales$Date)
+ts.sales$month = month(ts.sales$Date)
+ts.sales$day = day(ts.sales$Date)
+
+
+
+#Declare this as time series data 
+
+# Daily data
+
+## Create a daily Date object - helps my work on dates
+inds <- seq(as.Date("2021-01-01"), as.Date("2021-10-29"), by = "day")
+
+## Create a time series object
+set.seed(25)
+myseries1 <- ts(ts.sales[,2],     
+           start = c(2021, as.numeric(format(inds[1], "%j"))),
+           frequency = 302)
+###########################################
+# Preliminary Analysis
+###########################################
+# Time Plot 
+autoplot(myseries1) + ggtitle("Time Plot: Daily Gross Profits") +
+  ylab("Thousands of Riyals")
+
+# Data has some trend. Investigate transformations. 
+#Take the first difference of the data to remove the trend.
+
+DY <- diff(myseries1)
+
+# Time plot of the differenced data 
+
+autoplot(DY) + 
+  ggtitle("Time Plot: Change in Daily Gross Profits") +
+  ylab("Thousands of Riyals")
+  
+# Series appears stationary, use to investigate seasonality.
+
+#not working
+# ggseasonplot(DY) + 
+#   ggtitle("Seasonal Plot: Change in Daily Gross Profits") +
+#   ylab("Thousands of Riyals")
+
+
+# subseries plot
+# not working 
+#ggsubseriesplot(DY)
+
+
+############################################
+# ARMA MODEL
+############################################
+
+#This will plot the time series
+ts.plot(myseries1, xlab="Year", ylab="Daily Gross Profits", main="Daily Gross Profits")
+
+# This will fit in a line
+abline(reg=lm(myseries1~time(myseries1)))
+
+#Auto correlation
+acf(myseries1)  #it describes how well the present value of the series is related with its past values
+
+############################################
+#Fitting the AR Model to the time series
+############################################
+
+AR <- arima(myseries1, order = c(1,0,0))
+print(AR)
+
+#plotting the series along with the fitted values
+ts.plot(myseries1)
+AR_fit <- myseries1 - residuals(AR)
+points(AR_fit, type = "l", col = 2, lty = 2)
+
+#Forcasting using AR model
+
+#Using predict() to make a 1-step forecast
+predict_AR <- predict(AR)
+
+#Obtaining the 1-step forecast using $pred[1]
+predict_AR$pred[1]
+
+#ALternatively Using predict to make 1-step through 10-step forecasts
+predict(AR, n.ahead = 10)
+
+#plotting the series plus the forecast and 95% prediction intervals
+ts.plot(myseries1)
+AR_forecast <- predict(AR, n.ahead = 10)$pred
+AR_forecast_se <- predict(AR, n.ahead = 10)$se
+points(AR_forecast, type = "l", col = 2)
+points(AR_forecast - 2*AR_forecast_se, type = "l", col = 2, lty = 2)
+points(AR_forecast + 2*AR_forecast_se, type = "l", col = 2, lty = 2)
+
+############################################
+#Fit the MA model 
+############################################
+#Fitting the MA model to AirPassengers
+MA <- arima(myseries1, order = c(0,0,1))
+print(MA)
+
+#plotting the series along with the MA fitted values
+ts.plot(myseries1)
+MA_fit <- myseries1 - resid(MA)
+points(MA_fit, type = "l", col = 2, lty = 2)
+
+#Forcasting using MA model
+#Making a 1-step forecast based on MA
+predict_MA <- predict(MA)
+
+#Obtaining the 1-step forecast using $pred[1]
+predict_MA$pred[1]
+
+#Alternately Making a 1-step through 10-step forecast based on MA
+predict(MA,n.ahead=10)
+
+#Plotting the AIrPAssenger series plus the forecast and 95% prediction intervals
+ts.plot(myseries1)
+MA_forecasts <- predict(MA, n.ahead = 10)$pred
+MA_forecast_se <- predict(MA, n.ahead = 10)$se
+points(MA_forecasts, type = "l", col = 2)
+points(MA_forecasts - 2*MA_forecast_se, type = "l", col = 2, lty = 2)
+points(MA_forecasts + 2*MA_forecast_se, type = "l", col = 2, lty = 2)
+
+#Choosing AR or MA: Exploiting ACF plots
+# Find correlation between AR_fit and MA_fit
+cor(AR_fit, MA_fit)
+
+# Find AIC of AR
+AIC(AR)   #4642.548
+
+# Find AIC of MA
+AIC(MA) # 4650.568
+
+# Find BIC of AR
+BIC(AR)   #4653.728
+
+# Find BIC of MA
+BIC(MA)  #4661.749
+
+#According to the lowest values of the AIC and BIC, I will go with the AR model.
+
+
+############################################
+#AUTO ARIMA MODEL
+############################################
+
+## use auto.arima to choose ARIMA terms
+
+fit.arima <- auto.arima(myseries1)  #Residual SD = 6.472248
+
+## forecast for next 100 time points
+forecast_arima <- forecast(fit.arima, h = 100)
+
+## plot it
+plot(forecast_arima)
+
+#Model evaluation
+print(summary(fit.arima))
+checkresiduals(fit.arima)
+
+
+###########################################
+#Fit ETS method
+###########################################
+fit_ets <- ets(myseries1) # Residual SD = 515.6988
+print(summary(fit_ets))
+checkresiduals(fit_ets)
+
+############################################
+# Facebook Prophet
+############################################
+
+# Adjusting the data
+
+sales.data <- select(sales.data, c(1,6))
+
+names(sales.data) <- c('ds', 'y')
+
+# Making a Forecast
+
+fb.ts.s <- prophet(sales.data, yearly.seasonality=FALSE ,daily.seasonality=FALSE)
+
+future.s <- make_future_dataframe(fb.ts.s , periods=365)
+
+tail(future.s)
+
+# Forecasting
+
+forecast.s <- predict(fb.ts.s, future.s)
+
+tail(forecast.s[c('ds', 'yhat', 'yhat_lower', 'yhat_upper')])
+
+plot(fb.ts.s, forecast.s)
+
+
+prophet_plot_components(fb.ts.s, forecast.s)
+```
+
+
+# Visit Data
+
+```{r}
+#Downloading the data
+
+visit.dat <- read.csv("~/Documents/GitHub/DS_Capstone_Cafe_Analysis/Hourlydata.csv")
+```
+
+## Exploring some of the most important variables
+## The response variable
+```{r}
+VI.plot <- ggplot(data=visit.dat, aes(x=ValueIn)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("The number of visitors") +
+        NULL
+summary(visit.dat$ValueIn)
+```
+
+## The rest of the variables
+
+```{r}
+valueout.plot <- ggplot(data=visit.dat[!is.na(visit.dat$ValueOut),], aes(x=ValueOut)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("number of visitors leaving the cafe")+
+        NULL
+summary(visit.dat$ValueOut)
+
+OT.plot <- ggplot(data=visit.dat, aes(x=OutsideTraffic)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab(" The number of people outside the cafe ") +
+        NULL
+summary(visit.dat$OutsideTraffic)
+
+TI.plot <- ggplot(data=visit.dat, aes(x=TurnInRate)) +
+        geom_histogram(fill="black",bins = 30) +
+        xlab("The rate of visitors turn in") +
+        NULL
+summary(visit.dat$TurnInRate)
+
+
+day.plot <-  ggplot(visit.dat, aes(fill = factor(Day), mean(ValueIn))) +
+  geom_bar(position = "dodge") +
+  xlab("The days")
+  NULL
+table(visit.dat$Day)
+
+ggarrange(VI.plot, valueout.plot, OT.plot, TI.plot, day.plot + rremove("x.text"), ncol = 3, nrow = 2)
+```
+
+I decided to remove the variable Value out since it doesn't add any value to the number of visitors. 
+```{r}
+# Removing the ValueOut variable
+
+visit.dat <- select(visit.dat, -c(4))
+```
+
+# Random split
+```{r}
+set.seed(123)  # for reproducibility
+visit.split  <- initial_split(visit.dat, prop = 0.7)
+visit.train  <- training(visit.split)
+visit.test   <- testing(visit.split)
+```
+
+## Important features using Decision Trees
+```{r}
+
+# create resampling procedure
+set.seed(13)
+kfold <- vfold_cv(visit.train, v = 5)
+
+# Step 1: create ridge model object
+dt_mod <- decision_tree(mode = "regression") %>% set_engine("rpart")
+
+# Step 2: create model recipe
+model_recipe <- recipe(
+    ValueIn ~., 
+    data = visit.train
+  )
+  
+# Step 3: fit model workflow
+dt_fit <- workflow() %>%
+  add_recipe(model_recipe) %>%
+  add_model(dt_mod) %>%
+  fit(data = visit.train)
+
+# Step 4: results
+dt_fit
+
+# train model
+results <- fit_resamples(dt_mod, model_recipe, kfold)
+
+# model results
+collect_metrics(results)
+
+dt_fit %>%
+  pull_workflow_fit() %>%
+  vip(20)
+```
+Time and Date are the most important variables.
+
+## The effect of the hour on the number of visitors
+
+```{r}
+
+Time_vig <- plot_ly(visit.dat, y =  visit.dat$ValueIn, type = 'bar', color = ~Time) %>%
+  layout( barmode = 'stack')
+Time_vig
+```
+
+- We can see that there are many customers at night from 7pm until 12pm, but the highest number of visitors were at 22pm and 23pm.
+
+
+## The effect of the day on the number of visitors
+```{r}
+
+ggplot(visit.dat, aes(fill = factor(Day), max(ValueIn))) +
+  geom_bar(position = "dodge") +
+  NULL
+```
+
+- weekends have the highest number of visitors.
+
+# Time Series Analysis
+```{r}
+###################################
+# Time Series For visitor count
+###################################
+
+
+# Taking out the observations from 2020-11-26 until 2020-11-30 since there wont be monthly affect for this month
+
+visit.dat <- slice(visit.dat,-c(1:120))
+
+# Using aggregate() function to prepare dataset for plotting and time series analysis
+
+visit.dat <- aggregate(ValueIn ~ Day + Time , visit.dat, mean)
+                       
+## Create a daily Date object - helps my work on dates
+inds <- seq(as.Date("2020-12-01"), as.Date("2021-10-29"), by = "day")
+
+## Create a time series object
+set.seed(25)
+v.series <- ts(visit.dat[,3],     
+                start = c(2020, as.numeric(format(inds[1], "%j"))))
+
+
+
+###########################################
+# Preliminary Analysis
+###########################################
+# Time Plot 
+autoplot(v.series) + ggtitle("Time Plot: Daily visitors") 
+
+autoplot(v.series) +
+  ggtitle("Daily visitors") +
+  xlab("(visiting month)") + ylab("(visitors Records)") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# Data has some trend. Investigate transformations. 
+#Take the first difference of the data to remove the trend.
+
+DY <- diff(v.series)
+
+# Time plot of the differenced data 
+
+autoplot(DY) + 
+  ggtitle("Time Plot: Change in Daily visitors") +
+  ylab("number of visitors")
+
+# Series appears stationary, use to investigate seasonality.
+
+# #not working
+# ggseasonplot(DY) +
+#   ggtitle("Seasonal Plot: Change in Daily number of visitors") 
+
+
+# subseries plot
+# not working 
+# ggsubseriesplot(DY) #Data are not seasonal
+
+
+############################################
+# ARMA MODEL
+############################################
+
+#This will plot the time series
+ts.plot(v.series, xlab="month", ylab="Daily visitors", main="Daily visitors")
+
+# This will fit in a line
+abline(reg=lm(v.series~time(v.series)))
+
+#Auto correlation
+acf(v.series)  #it describes how well the present value of the series is related with its past values
+
+############################################
+#Fitting the AR Model to the time series
+############################################
+
+AR <- arima(v.series, order = c(1,0,0))
+print(AR)
+
+#plotting the series along with the fitted values
+ts.plot(v.series)
+AR_fit <- v.series - residuals(AR)
+points(AR_fit, type = "l", col = 2, lty = 2)
+
+#Forcasting using AR model
+
+#Using predict() to make a 1-step forecast
+predict_AR <- predict(AR)
+
+#Obtaining the 1-step forecast using $pred[1]
+predict_AR$pred[1]
+
+#ALternatively Using predict to make 1-step through 10-step forecasts
+predict(AR, n.ahead = 10)
+
+#plotting the series plus the forecast and 95% prediction intervals
+ts.plot(v.series)
+AR_forecast <- predict(AR, n.ahead = 10)$pred
+AR_forecast_se <- predict(AR, n.ahead = 10)$se
+points(AR_forecast, type = "l", col = 2)
+points(AR_forecast - 2*AR_forecast_se, type = "l", col = 2, lty = 2)
+points(AR_forecast + 2*AR_forecast_se, type = "l", col = 2, lty = 2)
+
+############################################
+#Fit the MA model 
+############################################
+#Fitting the MA model to AirPassengers
+MA <- arima(v.series, order = c(0,0,1))
+print(MA)
+
+#plotting the series along with the MA fitted values
+ts.plot(v.series)
+MA_fit <- v.series - resid(MA)
+points(MA_fit, type = "l", col = 2, lty = 2)
+
+
+#Forcasting using MA model
+#Making a 1-step forecast based on MA
+predict_MA <- predict(MA)
+
+#Obtaining the 1-step forecast using $pred[1]
+predict_MA$pred[1]
+
+#Alternately Making a 1-step through 10-step forecast based on MA
+predict(MA,n.ahead=10)
+
+#Plotting the AIrPAssenger series plus the forecast and 95% prediction intervals
+ts.plot(v.series)
+MA_forecasts <- predict(MA, n.ahead = 10)$pred
+MA_forecast_se <- predict(MA, n.ahead = 10)$se
+points(MA_forecasts, type = "l", col = 2)
+points(MA_forecasts - 2*MA_forecast_se, type = "l", col = 2, lty = 2)
+points(MA_forecasts + 2*MA_forecast_se, type = "l", col = 2, lty = 2)
+
+#Choosing AR or MA: Exploiting ACF plots
+# Find correlation between AR_fit and MA_fit
+cor(AR_fit, MA_fit)
+
+# Find AIC of AR
+AIC(AR)   #1169.239
+
+# Find AIC of MA
+AIC(MA) # 1248.577
+
+# Find BIC of AR
+BIC(AR)   #1178.611
+
+# Find BIC of MA
+BIC(MA)  #1257.949
+
+#According to the lowest values of the AIC and BIC, I will go with the AR model.
+
+
+############################################
+#An ARIMA MODEL
+############################################
+
+## use auto.arima to choose ARIMA terms
+fit.arima <- auto.arima(v.series,d=1,D=1, stepwise = FALSE, approximation = FALSE, trace = TRUE)  # d=1 (the first difference), trace prints all the models, Residual SD = 6.472248
+
+#Model evaluation
+print(summary(fit.arima))
+checkresiduals(fit.arima)
+
+
+## plot it
+plot(forecast_arima)
+## forecast for next 60 time points
+forecast_arima <- forecast(fit.arima, h = 100)
+
+###########################################
+#Fit ETS method
+###########################################
+fit_ets <- ets(v.series) # Residual SD = 6.849643
+print(summary(fit_ets))
+checkresiduals(fit_ets)
+
+
+
+############################################
+# Facebook Prophet
+#not working well on this data
+############################################
+
+# Adjusting the data
+
+visit.dat <- read.csv("~/Documents/GitHub/DS_Capstone_Cafe_Analysis/Hourlydata.csv")
+
+# Taking out the observations from 2020-11-26 until 2020-11-30 since there wont be monthly affect for this month
+
+visit.dat <- slice(visit.dat,-c(1:120))
+
+visit.dat <- select(visit.dat, c(1,3))
+
+names(visit.dat) <- c('ds', 'y')
+
+# Making a Forecast
+
+fb.ts <- prophet(visit.dat, yearly.seasonality=FALSE ,daily.seasonality=FALSE)
+
+future <- make_future_dataframe(fb.ts , periods=365)
+
+tail(future)
+
+# Forecasting
+
+forecast <- predict(fb.ts, future)
+
+tail(forecast[c('ds', 'yhat', 'yhat_lower', 'yhat_upper')])
+
+plot(fb.ts, forecast)
+
+
+prophet_plot_components(fb.ts, forecast)
+
+```
+
+
+# Conclusion
+
+To increase the number of visitors and thus profits, I suggest focusing on weekends as they tend to increase the number of people. Also, removing unprofitable products from then and increasing the number of profitable products may help.
+
+
+# Outlook for future development
+Deploying the model is one of what I plan to do in the future to feed it with the new data after completing one year from the opening date.
+
+
+
+# Limitations & problems
+
+The problem that I faced is that as I said, there is no seasonality in the data. I think that due to covid-19 lockdown and the limited number of customers that are allowed to enter the cafe. The Limitation was in the data since it is for a period that is less than a year.
+

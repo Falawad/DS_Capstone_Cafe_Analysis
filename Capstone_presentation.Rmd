@@ -11,25 +11,25 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Introduction
 
-Increasing the sales and profit margins is one of the most crucial priority of business owners. Thus, an owner of a local cafe asked me do some analysis on three different data to increase the profits and to predict future profits. 
+Increasing the sales and profit margins is one of the most crucial priority of business owners. Thus, an owner of a local cafe asked me do some analysis on three different data to increase the number of customers which will increase profits and to predict future profits. 
 
 ---
 
 ## Research questions 
 
-How could a cafe increases his profits?
+How could a cafe increases it's profits?
 
 To answer this question or to discover new information, or confirm an idea they already know, I plan to:
 
 - Discover what are the days that have many customers using time series on  visitors data.
 - Discover what are the best seller item using the products data.
-- Predicting the profits for the next year using a Time Series.
+- Predicting the profits for the next few months using a Time Series.
 
 ---
 
 ## The source and structure of the data
 
-The visit data is from a device the owner of the Cafe put above the main door to count the visitors and have some extra variables.It has 7 variables and 8089 observations.
+The visit data is from a device the owner of the Cafe put above the main door to count the visitors and have some extra variables.It has 6 variables and 8089 observations.
 
 | Variable             | Description                              |
 |----------------------|------------------------------------------|
@@ -38,7 +38,7 @@ The visit data is from a device the owner of the Cafe put above the main door to
 |ValueIn               | The number of visitors                   |
 |ValueOut              | The number of visitors leaving the cafe  |
 |Turn In Rate(%)       | The rate of visitors turn in             |
-|OutsideTraffic        | The numbers of people outside the cafe   |
+|OutsideTraffic        | The number of people outside the cafe   |
 
 
 ---
@@ -57,7 +57,7 @@ The items data from the sales website and it has 5 variables and 96 observations
 ---
 
 
-The sales data is from the sales website that he is using directly and has the 6 variables and 338 observations.
+The sales data is from the sales website that he is using directly and has the 5 variables and 338 observations.
 
 | Variable             | Description                              |
 |----------------------|------------------------------------------|
@@ -112,7 +112,7 @@ library(tidymodels)
 
 #Downloading the data
 
-visit.dat <- read.csv("~/Documents/GitHub/DS_Capstone_Cafa_Analysis/Hourlydata.csv")
+visit.dat <- read.csv("~/Documents/GitHub/DS_Capstone_Cafe_Analysis/Hourlydata.csv")
 
 ```
 
@@ -145,7 +145,7 @@ ggarrange(VI.plot, OT.plot, TI.plot + rremove("x.text"),
 ## Important features using Decision Trees
 
 ```{r, echo=FALSE}
-   knitr::include_graphics('./000009.png')
+knitr::include_graphics('./000009.png')
 ```
 
 - The time, and Date are the most important variables.
@@ -182,19 +182,19 @@ ggplot(visit.dat, aes(fill = factor(Day), max(ValueIn))) +
 
 ```{r echo=FALSE, cache=FALSE, results=TRUE, warning=FALSE, comment=FALSE, warning=FALSE}
 #Downloading the data
-Items <- read.csv("~/Documents/GitHub/DS_Capstone_Cafa_Analysis/Items.csv")
+Items <- read.csv("~/Documents/GitHub/DS_Capstone_Cafe_Analysis/Items.csv")
 
 ```
 
 ```{r, echo=FALSE, cache=FALSE}
 Items$item[Items$profits== max(Items$profits) & Items$count== max(Items$count)]
-
+Items$profits[Items$item== "Flat white"]
 ```
-Flat White is the most seller and most profitable item!
+Flat White is the best seller and most profitable item!
 
-## Items with more than 1,500 Pieces sold in 11 months
+## Items with more than 2000 Pieces sold in 11 months
 ```{r, echo=FALSE, cache=FALSE}
-Items$item[Items$count > 1500]
+Items$item[Items$count > 2000]
 ```
 The best selling items are drinks. Looks like we drink hot drinks even in the very hot weather since most of them are hot drinks. (At least water is on the list)
 
@@ -204,7 +204,7 @@ The best selling items are drinks. Looks like we drink hot drinks even in the ve
 Items$item[Items$profits == min(Items$profits)]
 ```
 
-- These are sweets, maybe it is not a good idea to have many desserts in a coffee shop.
+- Maybe it is a good idea to think about replacing or removing this drink.
 
 ---
 
@@ -213,7 +213,7 @@ Items$item[Items$profits == min(Items$profits)]
 
 ```{r echo=FALSE, cache=FALSE, results=TRUE, warning=FALSE, comment=FALSE, warning=FALSE}
 #Downloading the data
-sales.data <- read.csv("~/Documents/GitHub/DS_Capstone_Cafa_Analysis/sales-data.csv")
+sales.data <- read.csv("~/Documents/GitHub/DS_Capstone_Cafe_Analysis/sales-data.csv")
 
 ```
 
@@ -260,11 +260,25 @@ ggarrange(Prof.plot, cost.plot, tax.plot, offer.plot, tot.sale.plot + rremove("x
 
 ---
 
-# Time Series Analysis
+# Some Time Series Analysis Types
 
 ## ARIMA
 
 - It is a time series forecasting method. The phrase ARIMA stands for AutoRegressive Integrated Moving Average. The lags of the differenced series are referred to as Auto Regressive (AR). 
+
+## Auto Regressive(AR)
+
+- It is similar to the basic linear regression, except each observation is regressed on the prior observation.
+
+## Moving Averages(MA)
+
+- It is a simple time series model designed to account for autocorrelation. It has a regression-like structure, but each observation is regressed on the prior innovation, which is not observed.
+
+## Important things that we have to look at
+
+## Trend
+
+- Repeating pattern over time.
 
 ## Stationary
 
@@ -275,7 +289,6 @@ ggarrange(Prof.plot, cost.plot, tax.plot, offer.plot, tot.sale.plot + rremove("x
 - It is a repeating pattern within a year. We can not see that in our data because we don't have a record for a whole year.
 
 
-##
 --- 
 
 
