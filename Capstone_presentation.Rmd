@@ -5,24 +5,34 @@ author: "Fatimah Alawad"
 date: "11/13/2021"
 output: 
   ioslides_presentation:
+  css: mycss
   widescreen: true
   smaller: true
+  
 ---
+
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
+<style type="text/css">
+body p {
+  color: #000000;
+}
+</style>
 
-## Introduction 
+## Introduction {data-background=#FAF0E6}
+
 
 Increasing the sales and profit margins is one of the most crucial priority of business owners. Thus, an owner of a local cafe asked me do some analysis on three different data to increase the number of customers which will increase profits.
 
-```{r, echo=FALSE, out.width="30%"}
-knitr::include_graphics('./IMG_6841.PNG')
+```{r, echo=FALSE, out.width="40%"}
+knitr::include_graphics('./IMG_1933.jpg')
 ```
 
-## Research questions 
+## Research questions {data-background=#FAF0E6}
 
 How could a cafe increases it's profits?
 
@@ -34,7 +44,7 @@ To answer this question or to discover new information, or confirm an idea they 
 
 
 
-## The source and structure of the data
+## The source and structure of the data {data-background=#FFFFFF}
 
 The visit data is from a device the owner of the Cafe put above the main door to count the visitors and have some extra variables.It has 6 variables and 8089 observations.
 
@@ -50,7 +60,7 @@ The visit data is from a device the owner of the Cafe put above the main door to
 
 
 
-## Items Data 
+## Items Data {data-background=#FFFFFF}
 
 The items data from the sales website and it has 5 variables and 96 observations. 
 
@@ -64,7 +74,7 @@ The items data from the sales website and it has 5 variables and 96 observations
 
 
 
-## Sales Data
+## Sales Data {data-background=#FFFFFF}
 - The sales data is from the sales website that he is using directly and has the 5 variables and 338 observations.
 
 | Variable             | Description                              |
@@ -80,15 +90,18 @@ The items data from the sales website and it has 5 variables and 96 observations
 
 
 
-## Assumptions
+## Assumptions {data-background=#FAF0E6}
 
 1. In visit data, the variables are positively skewed due to the large number of zeros and ones since it is hourly data.
 
 2. It is not enough data since the cafe is open for less that a year.
 
+```{r, echo=FALSE, out.width="40%"}
+knitr::include_graphics('./assumptions.jpeg')
+```
 
 
-## EDA
+## EDA {data-background=#FAF0E6}
 
 - After uploading the data and exploring the distributions of the variables, I decided to remove the variable Value out since it doesn't add any value to the number of visitors.
 ```{r,include = FALSE}
@@ -148,7 +161,7 @@ ggarrange(VI.plot, OT.plot, TI.plot + rremove("x.text"),
 
 
 
-## Important features using Decision Trees
+## Important features using Decision Trees {data-background=#FAF0E6}
 
 ```{r, echo=FALSE}
 knitr::include_graphics('./000009.png')
@@ -158,7 +171,7 @@ knitr::include_graphics('./000009.png')
 
 
 
-## The effect of the hour visitors count
+## Effect of hours on visitors count {data-background=#FAF0E6}
 
 ```{r echo=FALSE, cache=FALSE, results=TRUE, warning=FALSE, comment=FALSE, warning=FALSE}
 
@@ -171,7 +184,7 @@ Time_vig
 
 
 
-## The effect of the day on visitors count
+## The effect of the day on visitors count {data-background=#FAF0E6}
 ```{r, echo=FALSE, cache=FALSE}
 
 ggplot(visit.dat, aes(fill = factor(Day), max(ValueIn))) +
@@ -184,7 +197,7 @@ ggplot(visit.dat, aes(fill = factor(Day), max(ValueIn))) +
 
 
 
-## Discovering what are the best seller item using the products data.
+## Discovering what are the best seller item using the products data {data-background=#FAF0E6}
 
 ```{r echo=FALSE, cache=FALSE, results=TRUE, warning=FALSE, comment=FALSE, warning=FALSE}
 #Downloading the data
@@ -197,28 +210,31 @@ Items$item[Items$profits== max(Items$profits) & Items$count== max(Items$count)]
 Items$profits[Items$item== "Flat white"]
 ```
 Flat White is the best seller and most profitable item!
+```{r, echo=FALSE, out.width="28%"}
+knitr::include_graphics('./IMG_6841.PNG')
+```
 
-## Items with more than 2000 Pieces sold in 11 months
+## Items with more than 2000 Pieces sold in 11 months {data-background=#FAF0E6}
 ```{r, echo=FALSE, cache=FALSE}
 Items$item[Items$count > 2000]
 ```
 The best selling items are drinks. Looks like we drink hot drinks even in the very hot weather since most of them are hot drinks. (At least water is on the list)
 
-# Which Items are not profitable?
+# Which Items are not profitable? {data-background=#F8F8FF}
 ```{r, echo=FALSE, cache=FALSE}
 #Choosing the items where the profits and counts are less than the average. 
 Items$item[Items$profits == min(Items$profits)]
 ```
 
-- Maybe it is a good idea to think about replacing or removing this drink.
+ Maybe it is a good idea to think about replacing or removing this drink.
 
-## Trend
+## Trend {data-background=#FAF0E6}
 
 ```{r, echo=FALSE, out.width="95%"}
 knitr::include_graphics('./trendof visitors.png')
 ```
 
-## Sales Data
+## Sales Data {data-background=#FAF0E6}
 
 ```{r echo=FALSE, cache=FALSE, results=TRUE, warning=FALSE, comment=FALSE, warning=FALSE}
 #Downloading the data
@@ -268,7 +284,7 @@ ggarrange(Prof.plot, cost.plot, tax.plot, offer.plot, tot.sale.plot + rremove("x
 
 
 
-## Trend
+## Trend {data-background=#FAF0E6}
 
 - Repeating pattern over time.
 
@@ -277,13 +293,13 @@ knitr::include_graphics('./Dialy gross profits.png')
 ```
 
 
-## Daily Trend
+## Daily Trend {data-background=#FAF0E6}
 
 ```{r, echo=FALSE, out.width="90%"}
 knitr::include_graphics('./Daily.trendofprofits.png')
 ```
 
-## Seasonality 
+## Seasonality {data-background=#FAF0E6}
 
 - It is a repeating pattern within a year. We can not see that in our data because we don't have a record for a whole year.
 
@@ -291,37 +307,47 @@ There is no Seasonality in my data.
 
 
 
-## Challenges
+## Challenges {data-background="how-to-overcome-blogging-challenges.png}
 
-- Doing a time series model for a short time is not easy and with some challenges such as covid-19 lockdown.
+- Doing a time series model for a short time is not easy specially with some challenges such as covid-19 lockdown.
 - In the time series, there is not enough data for a whole year, which prevent me from looking to the seasonality. I tried different ways to check it but nothing works.
 
 
-## Conclusion
+## Conclusion {data-background=#FAF0E6}
 
-To increase the number of visitors and thus profits, I suggest focusing on weekends as they tend to increase the number of people. Also, removing unprofitable products from then and increasing the number of profitable products may help.
+To increase the number of visitors and thus profits, I suggest focusing on weekends and night hours as they tend to increase the number of people. Also, removing unprofitable products from then and increasing the number of profitable products may help.
+
+```{r, echo=FALSE, out.width="30%"}
+knitr::include_graphics('./owl-cup-coffee-vector-flat-260nw-417181810.jpg.webp')
+```
 
 
-## Outlook for future development
+## Outlook for future development {data-background=#FAF0E6}
 Deploying the model is one of what I plan to do in the future to feed it with the new data after completing one year from the opening date.
 
 
 
-## Limitations & problems
+## Limitations & problems {data-background=#FAF0E6}
 
 The problem that I faced is that as I said, there is no seasonality in the data. I think that due to covid-19 lockdown and the limited number of customers that are allowed to enter the cafe. The Limitation was in the data since it is for a period that is less than a year.
 
+## References {data-background=#FAF0E6}
 
-## Thank you for listining 
+1. https://rpubs.com/JSHAH/481706
+2. https://otexts.com/fpp3/
+
+
+
+## Thank you for listining {data-background="QandA.jpeg"}
 
 
 - Any question? 
 
-```{r, echo=FALSE, out.width="40%"}
-knitr::include_graphics('./logos.png')
+```{r, echo=FALSE, out.width="15%"}
+knitr::include_graphics('./misk-skills.png')
 ```
 
 
-```{r, echo=FALSE, out.width="30%"}
+```{r, echo=FALSE, out.width="15%"}
 knitr::include_graphics('./MCIT.png')
 ```

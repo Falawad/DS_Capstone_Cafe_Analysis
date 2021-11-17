@@ -515,6 +515,7 @@ ggplot(visit.dat, aes(fill = factor(Day), max(ValueIn))) +
 
 - weekends have the highest number of visitors.
 
+
 # Time Series Analysis
 ```{r}
 ###################################
