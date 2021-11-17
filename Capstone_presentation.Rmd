@@ -1,19 +1,26 @@
 ---
 title: "Capstone_presentation"
+subtitle: "Cafe Project"
 author: "Fatimah Alawad"
 date: "11/13/2021"
-output: slidy_presentation
+output: 
+  ioslides_presentation:
+  widescreen: true
+  smaller: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-## Introduction
 
-Increasing the sales and profit margins is one of the most crucial priority of business owners. Thus, an owner of a local cafe asked me do some analysis on three different data to increase the number of customers which will increase profits and to predict future profits. 
+## Introduction 
 
----
+Increasing the sales and profit margins is one of the most crucial priority of business owners. Thus, an owner of a local cafe asked me do some analysis on three different data to increase the number of customers which will increase profits.
+
+```{r, echo=FALSE, out.width="30%"}
+knitr::include_graphics('./IMG_6841.PNG')
+```
 
 ## Research questions 
 
@@ -21,11 +28,11 @@ How could a cafe increases it's profits?
 
 To answer this question or to discover new information, or confirm an idea they already know, I plan to:
 
-- Discover what are the days that have many customers using time series on  visitors data.
-- Discover what are the best seller item using the products data.
-- Predicting the profits for the next few months using a Time Series.
+- Discover what are the days that have many customers using time series on visitors data.
+- Discover what are the best seller items using the products data.
+- Looking for trends to figure out what are the hours, days, and months that have many costumers.
 
----
+
 
 ## The source and structure of the data
 
@@ -38,11 +45,12 @@ The visit data is from a device the owner of the Cafe put above the main door to
 |ValueIn               | The number of visitors                   |
 |ValueOut              | The number of visitors leaving the cafe  |
 |Turn In Rate(%)       | The rate of visitors turn in             |
-|OutsideTraffic        | The number of people outside the cafe   |
+|OutsideTraffic        | The number of people outside the cafe    |
 
 
----
 
+
+## Items Data 
 
 The items data from the sales website and it has 5 variables and 96 observations. 
 
@@ -54,10 +62,10 @@ The items data from the sales website and it has 5 variables and 96 observations
 |cost                  | The cost of the items                    |
 |profits               | The amount of money earned               |
 
----
 
 
-The sales data is from the sales website that he is using directly and has the 5 variables and 338 observations.
+## Sales Data
+- The sales data is from the sales website that he is using directly and has the 5 variables and 338 observations.
 
 | Variable             | Description                              |
 |----------------------|------------------------------------------|
@@ -69,7 +77,7 @@ The sales data is from the sales website that he is using directly and has the 5
 
 
 
----
+
 
 
 ## Assumptions
@@ -78,13 +86,11 @@ The sales data is from the sales website that he is using directly and has the 5
 
 2. It is not enough data since the cafe is open for less that a year.
 
----
 
-# Discovering what are the days that have many customers using the visitors data
 
--  After uploading the data and exploring the distributions of the variables, I decided to remove the variable Value out since it doesn't add any value to the number of visitors. 
--  The variables seem to be positively skewed as we can see here:
+## EDA
 
+- After uploading the data and exploring the distributions of the variables, I decided to remove the variable Value out since it doesn't add any value to the number of visitors.
 ```{r,include = FALSE}
 ## load packages
 library(tidyverse)
@@ -140,7 +146,7 @@ ggarrange(VI.plot, OT.plot, TI.plot + rremove("x.text"),
 
 -A large number of zeros is because of the hourly data.
 
----
+
 
 ## Important features using Decision Trees
 
@@ -150,9 +156,9 @@ knitr::include_graphics('./000009.png')
 
 - The time, and Date are the most important variables.
 
----
 
-## The effect of the hour on the number of visitors
+
+## The effect of the hour visitors count
 
 ```{r echo=FALSE, cache=FALSE, results=TRUE, warning=FALSE, comment=FALSE, warning=FALSE}
 
@@ -163,9 +169,9 @@ Time_vig
 
 - We can see that there are many customers at night from 7pm until 12pm, but the highest number of visitors were at 22pm and 23pm.
 
----
 
-## The effect of the day on the number of visitors
+
+## The effect of the day on visitors count
 ```{r, echo=FALSE, cache=FALSE}
 
 ggplot(visit.dat, aes(fill = factor(Day), max(ValueIn))) +
@@ -175,7 +181,7 @@ ggplot(visit.dat, aes(fill = factor(Day), max(ValueIn))) +
 
 - weekends have the highest number of visitors.
 
----
+
 
 
 ## Discovering what are the best seller item using the products data.
@@ -206,8 +212,11 @@ Items$item[Items$profits == min(Items$profits)]
 
 - Maybe it is a good idea to think about replacing or removing this drink.
 
----
+## Trend
 
+```{r, echo=FALSE, out.width="95%"}
+knitr::include_graphics('./trendof visitors.png')
+```
 
 ## Sales Data
 
@@ -217,8 +226,6 @@ sales.data <- read.csv("~/Documents/GitHub/DS_Capstone_Cafe_Analysis/sales-data.
 
 ```
 
-
-- EDA
 
 ```{r}
 # Ploting the response
@@ -258,62 +265,63 @@ ggarrange(Prof.plot, cost.plot, tax.plot, offer.plot, tot.sale.plot + rremove("x
 
 - All the variables are positively skewed. A large number of zeros duo to the closing hours. 
 
----
 
-# Some Time Series Analysis Types
 
-## ARIMA
-
-- It is a time series forecasting method. The phrase ARIMA stands for AutoRegressive Integrated Moving Average. The lags of the differenced series are referred to as Auto Regressive (AR). 
-
-## Auto Regressive(AR)
-
-- It is similar to the basic linear regression, except each observation is regressed on the prior observation.
-
-## Moving Averages(MA)
-
-- It is a simple time series model designed to account for autocorrelation. It has a regression-like structure, but each observation is regressed on the prior innovation, which is not observed.
-
-## Important things that we have to look at
 
 ## Trend
 
 - Repeating pattern over time.
 
-## Stationary
+```{r, echo=FALSE, out.width="70%"}
+knitr::include_graphics('./Dialy gross profits.png')
+```
 
-- A stationary time series is one whose statistical properties are independent of the time at which the series is recorded.
+
+## Daily Trend
+
+```{r, echo=FALSE, out.width="90%"}
+knitr::include_graphics('./Daily.trendofprofits.png')
+```
 
 ## Seasonality 
 
 - It is a repeating pattern within a year. We can not see that in our data because we don't have a record for a whole year.
 
-
---- 
-
+There is no Seasonality in my data.
 
 
 
-
----
-# Challenges
+## Challenges
 
 - Doing a time series model for a short time is not easy and with some challenges such as covid-19 lockdown.
 - In the time series, there is not enough data for a whole year, which prevent me from looking to the seasonality. I tried different ways to check it but nothing works.
 
 
-# Conclusion
+## Conclusion
 
 To increase the number of visitors and thus profits, I suggest focusing on weekends as they tend to increase the number of people. Also, removing unprofitable products from then and increasing the number of profitable products may help.
 
 
-# Outlook for future development
+## Outlook for future development
 Deploying the model is one of what I plan to do in the future to feed it with the new data after completing one year from the opening date.
 
 
 
-# Limitations & problems
+## Limitations & problems
 
 The problem that I faced is that as I said, there is no seasonality in the data. I think that due to covid-19 lockdown and the limited number of customers that are allowed to enter the cafe. The Limitation was in the data since it is for a period that is less than a year.
 
-# Any question?
+
+## Thank you for listining 
+
+
+- Any question? 
+
+```{r, echo=FALSE, out.width="40%"}
+knitr::include_graphics('./logos.png')
+```
+
+
+```{r, echo=FALSE, out.width="30%"}
+knitr::include_graphics('./MCIT.png')
+```
